@@ -2,42 +2,61 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 )
 
-type Album struct {
-	ID          string `json:"id"`
-	ImageNumber string `json:"image_number"`
-	Name        string `json:"name"`
-	Artist      string `json:"artist"`
-	Year        string `json:"year"`
-}
-
-var albums []Album
-
 func getAlbums(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(albums)
-
+	allAlbums, err := RetrieveAlbums()
+	if err != nil {
+		return
+	}
+	fmt.Println(allAlbums)
+	json.NewEncoder(w).Encode(allAlbums)
 }
 
 func getAlbum(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	for _, item := range albums {
-		if item.ID == params["id"] {
+	allAlbums, err := RetrieveAlbums()
+	if err != nil {
+		return
+	}
+	for _, item := range allAlbums {
+		if string(item.Id) == params["Id"] {
 			json.NewEncoder(w).Encode(item)
 			return
 		}
 	}
 }
 
+func getAlbumByArtist(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r)
+	allAlbums, err := RetrieveAlbumsByArtist(params["artist"])
+	if err != nil {
+		return
+	}
+	json.NewEncoder(w).Encode(allAlbums)
+}
+
 func main() {
 
-	albums = append(albums, Album{ID: "1", ImageNumber: "1", Name: "The Color and The Shape ", Artist: "Foo Fighters", Year: "1997"},
-		Album{ID: "2", ImageNumber: "2", Name: "The Satanist ", Artist: "Behemoth", Year: "2014"})
+	//a := Album{
+	//	Id:       2,
+	//	ArtistId: 1,
+	//	Name:     "FOO FIGHTERS",
+	//	Year:     1995,
+	//	Price:    100,
+	//}
+	//
+	//err := Create(a)
+	//if err != nil{
+	//	log.Fatal(err)
+	//}
 
 	// initialize router
 	router := mux.NewRouter()
@@ -45,6 +64,7 @@ func main() {
 	//endpoint
 	router.HandleFunc("/albums", getAlbums).Methods("GET")
 	router.HandleFunc("/album/{id}", getAlbum).Methods("GET")
+	router.HandleFunc("/album/artist/{artist}", getAlbumByArtist).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
